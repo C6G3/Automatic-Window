@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "author": "Wamburu Gakinya",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 0, "left": 0, "attrs": {} },
+    { "type": "wokwi-servo", "id": "servo1", "top": -30.8, "left": 172.8, "attrs": {} },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht1",
+      "top": 96.3,
+      "left": 263.4,
+      "attrs": { "temperature": "1.6", "humidity": "34.5" }
+    },
+    { "type": "wokwi-pir-motion-sensor", "id": "pir1", "top": 4, "left": -189.78, "attrs": {} },
+    { "type": "wokwi-slide-switch", "id": "sw1", "top": 177.2, "left": -150.5, "attrs": {} },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 52.8,
+      "left": -96.55,
+      "rotate": 90,
+      "attrs": { "value": "1000" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "servo1:GND", "esp:GND.2", "black", [ "h0" ] ],
+    [ "servo1:V+", "esp:5V", "green", [ "h-28.8", "v201.7", "h-153.6", "v-28.8" ] ],
+    [ "dht1:VCC", "esp:3V3", "red", [ "v38.4", "h-316.8", "v-220.8" ] ],
+    [ "dht1:SDA", "esp:4", "green", [ "v19.2", "h-115.1", "v-86.4", "h9.6" ] ],
+    [ "dht1:GND", "esp:GND.2", "black", [ "v28.8", "h-124.8", "v-115.2", "h-57.6", "v-96" ] ],
+    [ "pir1:VCC", "esp:3V3", "red", [ "v9.6", "h-48", "v-115.2", "h124.8" ] ],
+    [ "pir1:GND", "esp:GND.1", "black", [ "v0" ] ],
+    [ "pir1:OUT", "esp:34", "green", [ "v19.2", "h134.26", "v-19.2" ] ],
+    [ "sw1:2", "esp:3V3", "green", [ "v9.6", "h76.9", "v-192" ] ],
+    [ "servo1:PWM", "esp:13", "green", [ "h-57.6", "v201.8", "h-134.4", "v-57.6" ] ],
+    [ "sw1:1", "esp:32", "green", [ "v9.6", "h-19.2", "v-96", "h144", "v-38.4" ] ],
+    [ "r1:2", "esp:32", "green", [ "h0" ] ],
+    [ "r1:1", "esp:GND.1", "green", [ "h-19.2", "v124.8" ] ]
+  ],
+  "dependencies": {}
+}
