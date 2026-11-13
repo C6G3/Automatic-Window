@@ -1,4 +1,4 @@
-# Auto Window Dashboard
+# Automatic Window
 
 A full-stack IoT system for remotely monitoring and controlling an ESP32-driven motorised window. The dashboard runs as a Progressive Web App (PWA) and communicates with the ESP32 in real time over MQTT. Historical sensor data is persisted to Supabase and visualised on a live graph.
 
@@ -10,7 +10,7 @@ A full-stack IoT system for remotely monitoring and controlling an ESP32-driven 
 - **Live sensor data** — temperature (DHT11), humidity, rain detection (water sensor), and motion (HW-416B PIR) streamed over MQTT
 - **Historical graph** — time-series charts powered by Supabase (live, 15 m, 30 m, 1 h, 6 h, 1 d ranges)
 - **PWA** — installable on Android/iOS, works offline for settings; manifest + service worker included
-- **MQTT → Supabase bridge** — a lightweight Node.js ingest process (`ingest/bridge.mjs`) subscribes to all dashboard topics and writes readings + settings to two Supabase tables
+- **MQTT → Supabase bridge** — a lightweight Node.js ingest process (`web/ingest/bridge.mjs`) subscribes to all dashboard topics and writes readings + settings to two Supabase tables
 - **Self-hosted or Vercel** — static frontend served by Express or deployed directly to Vercel; bridge runs alongside as a sidecar
 
 ---
@@ -25,7 +25,7 @@ HiveMQ Public Broker  ◄────────────────►  ES
    │                                         ├─ Servo motor (window)
    │  MQTT topics                            ├─ DHT11 (temp/humidity)
    ▼                                         ├─ Water sensor
-Node.js Bridge (ingest/bridge.mjs)           └─ PIR motion sensor
+Node.js Bridge (web/ingest/bridge.mjs)       └─ PIR motion sensor
    │
    ▼
 Supabase (PostgreSQL)
@@ -51,14 +51,14 @@ Supabase (PostgreSQL)
 ## Repository Layout
 
 ```
-auto-window-dashboard/
-├── index.html              # PWA shell
-├── styles.css              # Dark/light theme styles
-├── app.js                  # Frontend logic (MQTT, gauges, graph, settings)
-├── config.js               # Generated at build — injects env vars into window.*
-├── server.js               # Express server (serves static files + starts bridge)
-├── manifest.webmanifest    # PWA manifest
-├── vercel.json             # Vercel deployment config
+Automatic-Window/
+├── 3dModel/                # SolidWorks + STL files for housing (panel, base, PIR box)
+│   ├── base.SLDPRT
+│   ├── base.STL
+│   ├── panel.SLDPRT
+│   ├── panel.STL
+│   ├── pir_box.SLDPRT
+│   └── pir_box.STL
 │
 ├── ESP32/                  # PlatformIO firmware
 │   ├── src/main.cpp        # Main firmware (servo, DHT11, PIR, water, MQTT)
@@ -67,37 +67,44 @@ auto-window-dashboard/
 │   │   └── secrets.h.example  # Template to copy from
 │   └── platformio.ini      # Board + library dependencies
 │
-├── ingest/
-│   ├── bridge.mjs          # MQTT → Supabase bridge
-│   ├── .env.example        # Template for bridge environment variables
-│   └── seed_readings.mjs   # Dev utility: seed fake telemetry rows
+├── web/                    # Frontend dashboard, server, and ingestion bridge
+│   ├── index.html          # PWA shell
+│   ├── styles.css          # Dark/light theme styles
+│   ├── app.js              # Frontend logic (MQTT, gauges, graph, settings)
+│   ├── config.js           # Generated at build — injects env vars into window.*
+│   ├── server.js           # Express server (serves static files + starts bridge)
+│   ├── manifest.webmanifest# PWA manifest
+│   ├── vercel.json         # Vercel deployment config
+│   ├── ingest/
+│   │   ├── bridge.mjs      # MQTT → Supabase bridge
+│   │   ├── .env.example    # Template for bridge environment variables
+│   │   └── seed_readings.mjs
+│   ├── supabase/
+│   │   └── schema.sql      # Full DB schema (run in Supabase SQL editor)
+│   ├── scripts/
+│   │   └── gen-config.cjs  # Build script: writes config.js from .env
+│   ├── icons/              # PWA icons + wallpaper images
+│   └── docs/               # Images and documentation
 │
-├── supabase/
-│   └── schema.sql          # Full DB schema (run once in Supabase SQL editor)
-│
-├── scripts/
-│   └── gen-config.cjs      # Build script: writes config.js from .env
-│
-├── 3D Model/               # SolidWorks + STL files for housing (panel, base, PIR box)
-├── docs/                   # Extra documentation and screenshots
-└── icons/                  # PWA icons + wallpaper images
+├── README.md               # Main project documentation
+└── LICENSE                 # License
 ```
 
 ---
 
 ## Getting Started
 
-### 1 — Supabase
+### 1 — Supabase Setup
 
 1. Create a new Supabase project
-2. Open the SQL editor and run `supabase/schema.sql`
-3. Note your **Project URL** and **anon key** (for the frontend) and **service-role key** (for the bridge)
+2. Open the SQL editor and run `web/supabase/schema.sql`
+3. Note your **Project URL** and **anon key** (for frontend) and **service-role key** (for the bridge)
 
-### 2 — Local development (web + bridge)
+### 2 — Local Development (Web + Bridge)
 
 ```bash
-# Install dependencies
-cd auto-window-dashboard
+# Navigate to web directory and install dependencies
+cd web
 npm install
 
 # Configure the frontend
@@ -112,23 +119,24 @@ npm start
 # → http://localhost:3000
 ```
 
-The bridge reads its own `.env` from `ingest/`:
+The bridge reads its own `.env` from `web/ingest/`:
 
 ```bash
-cd ingest
+cd web/ingest
 cp .env.example .env
-# Edit ingest/.env with your Supabase service-role key and MQTT URL
+# Edit web/ingest/.env with your Supabase service-role key and MQTT URL
 ```
 
-### 3 — Vercel deployment
+### 3 — Vercel Deployment
 
 ```bash
+cd web
 vercel --prod
 # Set all NEXT_PUBLIC_* environment variables in the Vercel dashboard
-# The bridge must run elsewhere (Render, Railway, your Pi, etc.)
+# The bridge must run elsewhere (Render, Railway, Raspberry Pi, etc.)
 ```
 
-### 4 — ESP32 firmware
+### 4 — ESP32 Firmware
 
 > **Prerequisites:** [PlatformIO](https://platformio.org/) (VS Code extension or CLI)
 
@@ -149,7 +157,7 @@ pio run --target upload
 pio device monitor --baud 115200
 ```
 
-#### Hardware wiring
+#### Hardware Wiring
 
 | Component | ESP32 GPIO |
 |---|---|
@@ -162,7 +170,7 @@ pio device monitor --baud 115200
 | LED 3 | 23 |
 | Board LED | 2 |
 
-#### PlatformIO dependencies
+#### PlatformIO Dependencies
 
 ```ini
 lib_deps =
@@ -176,7 +184,7 @@ lib_deps =
 
 ## Environment Variables
 
-### Frontend (`.env.local` / Vercel dashboard)
+### Frontend (`web/.env.local` / Vercel dashboard)
 
 | Variable | Description |
 |---|---|
@@ -187,7 +195,7 @@ lib_deps =
 | `NEXT_PUBLIC_MQTT_PASSWORD` | Optional broker password |
 | `NEXT_PUBLIC_MQTT_CLIENT_ID_PREFIX` | Client ID prefix (default `dashboard-`) |
 
-### Bridge (`ingest/.env`)
+### Bridge (`web/ingest/.env`)
 
 | Variable | Description |
 |---|---|
@@ -207,7 +215,7 @@ lib_deps =
 > **⚠ `ESP32/include/secrets.h` is listed in `.gitignore` and must never be committed.**
 > It contains your Wi-Fi password in plaintext. Use `secrets.h.example` as the committed template.
 
-> **The bridge uses the Supabase service-role key** which bypasses Row-Level Security. Keep it in `ingest/.env` only — this file is also excluded from git via `.gitignore`.
+> **The bridge uses the Supabase service-role key** which bypasses Row-Level Security. Keep it in `web/ingest/.env` only — this file is also excluded from git via `.gitignore`.
 
 > **Public MQTT broker:** The default `broker.hivemq.com` is unauthenticated and shared. For production, use a private broker (HiveMQ Cloud, Mosquitto, etc.) and set `MQTT_USERNAME`/`MQTT_PASSWORD` in both the firmware and the bridge.
 
@@ -215,7 +223,7 @@ lib_deps =
 
 ## 3D Printed Parts
 
-The `3D Model/` folder contains SolidWorks (`.SLDPRT`) and exported STL files for:
+The `3dModel/` folder contains SolidWorks (`.SLDPRT`) and exported STL files for:
 
 - **`base.STL`** — main mounting bracket
 - **`panel.STL`** — front panel / window attachment
